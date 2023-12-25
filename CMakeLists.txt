@@ -17,9 +17,8 @@ add_executable(Hash_table
         UTM.h
         VuelaFlight.cpp
         VuelaFlight.h
-        ThashAirp.h
-        ThashAirp.cpp
         fecha.cpp
         fecha.h
         Flight.cpp
-        Flight.h)
+        Flight.h
+        RegularMesh.h)

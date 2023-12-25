@@ -11,15 +11,18 @@
 #include <iterator>
 #include <map>
 #include <set>
-#include "ThashAirp.h"
+#include <unordered_map>
 #include "Airport.h"
 #include "Route.h"
 #include "Airline.h"
 #include "Flight.h"
+#include "RegularMesh.h"
 
 class VuelaFlight {
 private:
-    ThashAirp airports = ThashAirp(76368,0.7);
+    std::unordered_map<std::string, Airport> airportsID;
+    RegularMesh<Airport> airportsUTM;
+
     std::multimap<std::string,Route> origRoutes;
     std::multimap<std::string,Route*> destRoutes;
     std::map<std::string,Airline> airlines;
@@ -60,18 +63,17 @@ public:
 
     const std::vector<Airport> getAirports();
 
-    const ThashAirp getAirportsHash();
-
     void deleteAirport(std::string iataAirport);
 
     void addAirport(Airport& airp);
 
     void deleteInactiveAirports();
 
-    void showTableState();
+    unsigned int maxAirportsInQuadrant();
+
+    float averageAirportsPerQuadrant();
 
 };
-
 
 
 #endif //PR1_CD_VUELAFLIGHT_H

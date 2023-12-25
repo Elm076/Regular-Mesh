@@ -9,6 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <ctime>
+#include <limits>
 
 VuelaFlight::VuelaFlight(std::string airports_file, std::string routes_file, std::string airlines_file) {
 
@@ -29,11 +30,16 @@ VuelaFlight::VuelaFlight(std::string airports_file, std::string routes_file, std
 
         clock_t t_ini = clock();
 
+        const unsigned int NDIVMESH = 100;
+        float minX = std::numeric_limits<float>::max();
+        float maxX = std::numeric_limits<float>::min();
+        float minY = std::numeric_limits<float>::max();
+        float maxY = std::numeric_limits<float>::min();
+        std::vector<Airport> aux_airports;
         while (getline(airports_stream, line)) {
 
             //¿Exists a new line on the file?
             if (!line.empty()) {
-
                 columns_airports.str(line);
 
                 //Line format: id;iata;type;size;fecha;country_iso
@@ -51,8 +57,24 @@ VuelaFlight::VuelaFlight(std::string airports_file, std::string routes_file, std
                 columns_airports.clear();
                 UTM location = UTM(strLatitude, strLongitude);
                 Airport airp(std::stoi(id), iata, type, name, location, continent, country_iso);
-                airports.push(iata,airp);
+                airportsID.insert(std::pair<std::string,Airport>(iata,airp));
+                aux_airports.push_back(airp);
+                if(std::stof(strLatitude) < minY)
+                    minY = std::stof(strLatitude);
+                else if(std::stof(strLatitude) > maxY)
+                    maxY = std::stof(strLatitude);
+
+                if(std::stof(strLongitude) < minX)
+                    minX = std::stof(strLongitude);
+                else if(std::stof(strLongitude) > maxX)
+                    maxX = std::stof(strLongitude);
             }
+        }
+        int tam = airportsID.size();
+        airportsUTM = RegularMesh<Airport>(minX,minY,maxX+0.5,maxY+0.5,NDIVMESH);
+        for(unsigned int i = 0; i < aux_airports.size(); i++){
+            airportsUTM.push(std::stof(aux_airports[i].getLocation().getLongitude()),std::stof(aux_airports[i].getLocation().getLatitude()),aux_airports[i]);
+
         }
 
         airports_stream.close();
@@ -151,8 +173,8 @@ VuelaFlight::VuelaFlight(std::string airports_file, std::string routes_file, std
                 Airline* realAirline = &airlines.find(airlineObject.getIcao())->second;
 
                 //search the airports in the data base and build the route to push it after.
-                Airport *real_orig = airports.search(orig_airport);
-                Airport *real_dest = airports.search(dest_airport);
+                Airport *real_orig = &airportsID.find(orig_airport)->second;
+                Airport *real_dest = &airportsID.find(dest_airport)->second;
                 //build the new route
                 Route line_route(realAirline,real_orig,real_dest);
                 //push the new route on the linkedList
@@ -175,16 +197,13 @@ VuelaFlight::VuelaFlight(std::string airports_file, std::string routes_file, std
 }
 
 Airport& VuelaFlight::searchAirport(std::string iataAirport) {
-    return *airports.search(iataAirport);
+    return airportsID.find(iataAirport)->second;
 }
 
 unsigned int VuelaFlight::getNumAirports() {
-    return airports.getSize();
+    return airportsID.size();
 }
 
-const std::vector<Airport> VuelaFlight::getAirports() {
-    return airports.getAirports();
-}
 
 void VuelaFlight::deleteAirport(std::string iataAirport) {
     // Found all the elements associated with the airport to delete
@@ -194,7 +213,7 @@ void VuelaFlight::deleteAirport(std::string iataAirport) {
     // Delete all of them
     origRoutes.erase(origRange.first, origRange.second);
     destRoutes.erase(destRange.first, destRange.first);
-    if (airports.pop(iataAirport)){
+    if (airportsID.erase(iataAirport)){
         std::cout << "Airport " << iataAirport << " deleted" << std::endl;
     }
     else{
@@ -204,7 +223,7 @@ void VuelaFlight::deleteAirport(std::string iataAirport) {
 
 void VuelaFlight::addAirport(Airport &airp) {
     std::string iataToPush = airp.getIata();
-    airports.push(iataToPush,airp);
+    airportsID.insert(std::pair<std::string,Airport>(iataToPush,airp));
 }
 
 /*
@@ -311,10 +330,11 @@ bool VuelaFlight::flightRegister(std::string fNmber, std::string origAirpIata, s
 
     Airline *company = &airlines[fliIcao];
     if (*company != Airline()){
+        Airport ap(origAirpIata);
         Flight flight(fNmber,
                       company,
-                      airports.search(origAirpIata),
-                      airports.search(destAirpIata),
+                      &airportsID.find(origAirpIata)->second,
+                      &airportsID.find(destAirpIata)->second,
                       plane,
                       weatherData,
                       f);
@@ -416,7 +436,7 @@ std::set<std::string> VuelaFlight::searchFlightsDestAirp(std::string origCountry
     return result;
 }
 */
-
+/*
 void VuelaFlight::deleteInactiveAirports() {
     for (unsigned int i = 0; i < airports.getAirports().size(); i++){
         std::string iataToSearch= airports.getAirports()[i].getIata();
@@ -428,14 +448,12 @@ void VuelaFlight::deleteInactiveAirports() {
         //std::cout << i << std::endl;
     }
 }
+*/
 
-void VuelaFlight::showTableState() {
-    std::cout << ".....STATE OF THE HASH TABLE....." << std::endl;
-    std::cout << "Size: " << airports.getSize() << std::endl;
-    std::cout << "Charge Factor " << airports.getChargeFactor() << std::endl;
-    std::cout << "Max Collisions " << airports.getMaxColisiones() << std::endl;
-    std::cout << "Total Collisions " << airports.getTotalCollisions() << std::endl;
-    std::cout << "Average Collisions " << airports.getAverageCollisions() << std::endl;
-    std::cout << "Num of 10 collisions "  << airports.getNumMax10() << std::endl <<
-    std::endl;
+unsigned int VuelaFlight::maxAirportsInQuadrant() {
+    return airportsUTM.maxElementsPerSquare();
+}
+
+float VuelaFlight::averageAirportsPerQuadrant() {
+    return airportsUTM.averageElementsPerSquare();
 }

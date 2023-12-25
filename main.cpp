@@ -5,9 +5,6 @@
 #include <ctime>
 #include "Dynamic_container.h"
 #include "Airport.h"
-#include "Linked_list.h"
-#include "Iterator.h"
-#include "AVL.h"
 #include "VuelaFlight.h"
 
 /**
@@ -20,6 +17,9 @@ int main() {
 
     VuelaFlight dataBase("..\\aeropuertos_v3.csv", "..\\rutas_v1.csv", "..\\aerolineas_v1.csv");
     std::cout << std::endl;
+    std::cout << "The max num of airports ubicated in a quadrant is " << dataBase.maxAirportsInQuadrant() << std::endl;
+    std::cout << "The average num of airports ubicated per quadrant is " << dataBase.averageAirportsPerQuadrant() << std::endl;
+    /*
     dataBase.showTableState();
 
     Airport airpToSearch = dataBase.searchAirport("00AS");
@@ -41,6 +41,6 @@ int main() {
     dataBase.deleteInactiveAirports();
     dataBase.showTableState();
 
-
+    */
     std::cout << "----- End of the program -----" << std::endl;
 }
